@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  temperature-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: temperature-monitor
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker 
