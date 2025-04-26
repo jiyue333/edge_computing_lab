@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>温度监控仪表盘</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding-top: 20px;
+            background-color: #f5f5f5;
+        }
+        .temperature-card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        .temperature-card:hover {
+            transform: translateY(-5px);
+        }
+        .temperature-value {
+            font-size: 4rem;
+            font-weight: bold;
+        }
+        .chart-container {
+            height: 400px;
+            margin-top: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background-color: white;
+            padding: 15px;
+        }
+        .dashboard-title {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .sensor-status {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        .cool {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        .normal {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .warm {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .hot {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center dashboard-title">实时温度监控系统</h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card temperature-card mb-4">
+                    <div class="card-body text-center" id="temperature-display">
+                        <h5 class="card-title">当前温度</h5>
+                        <p class="temperature-value">--°C</p>
+                        <p class="card-text sensor-status">上次更新时间: --</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card temperature-card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">温度状态</h5>
+                        <div class="mt-3">
+                            <div class="progress" style="height: 30px;">
+                                <div class="progress-bar" id="temperature-progress" role="progressbar" 
+                                     style="width: 50%;" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100">
+                                    正常温度
+                                </div>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-2">
+                            <small>10°C</small>
+                            <small>25°C</small>
+                            <small>40°C</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <h5>温度历史记录</h5>
+            <canvas id="temperatureChart"></canvas>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // 图表初始化
+        const ctx = document.getElementById('temperatureChart').getContext('2d');
+        const temperatureChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: '温度 (°C)',
+                    data: [],
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.3,
+                    fill: true,
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        suggestedMin: 10,
+                        suggestedMax: 40
+                    }
+                },
+                animation: {
+                    duration: 500
+                }
+            }
+        });
+
+        // 获取温度显示元素
+        const temperatureDisplay = document.getElementById('temperature-display');
+        const temperatureProgress = document.getElementById('temperature-progress');
+
+        // 更新温度显示
+        function updateTemperatureDisplay(temp, timestamp) {
+            // 更新显示值
+            const tempElement = temperatureDisplay.querySelector('.temperature-value');
+            tempElement.textContent = `${temp}°C`;
+            
+            // 更新时间戳
+            const timestampElement = temperatureDisplay.querySelector('.sensor-status');
+            timestampElement.textContent = `上次更新时间: ${formatDateTime(timestamp)}`;
+            
+            // 根据温度更新卡片样式
+            temperatureDisplay.classList.remove('cool', 'normal', 'warm', 'hot');
+            
+            let statusClass = 'normal';
+            let statusText = '正常温度';
+            let progressPercent = ((temp - 10) / 30) * 100; // 范围从10°C到40°C
+            
+            if (temp < 15) {
+                statusClass = 'cool';
+                statusText = '偏低温度';
+            } else if (temp >= 15 && temp < 25) {
+                statusClass = 'normal';
+                statusText = '正常温度';
+            } else if (temp >= 25 && temp < 30) {
+                statusClass = 'warm';
+                statusText = '偏高温度';
+            } else {
+                statusClass = 'hot';
+                statusText = '高温警告';
+            }
+            
+            temperatureDisplay.classList.add(statusClass);
+            
+            // 更新进度条
+            temperatureProgress.style.width = `${progressPercent}%`;
+            temperatureProgress.textContent = statusText;
+            temperatureProgress.className = 'progress-bar';
+            
+            // 添加对应的样式
+            if (statusClass === 'cool') {
+                temperatureProgress.classList.add('bg-info');
+            } else if (statusClass === 'normal') {
+                temperatureProgress.classList.add('bg-success');
+            } else if (statusClass === 'warm') {
+                temperatureProgress.classList.add('bg-warning');
+            } else {
+                temperatureProgress.classList.add('bg-danger');
+            }
+        }
+
+        // 格式化日期时间
+        function formatDateTime(dateTimeStr) {
+            const options = { 
+                year: 'numeric', 
+                month: '2-digit', 
+                day: '2-digit',
+                hour: '2-digit', 
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            };
+            const dateTime = new Date(dateTimeStr);
+            return dateTime.toLocaleString('zh-CN', options);
+        }
+
+        // 从服务器获取当前温度
+        async function getCurrentTemperature() {
+            try {
+                const response = await fetch('/api/temperature');
+                const data = await response.json();
+                updateTemperatureDisplay(data.temperature, data.timestamp);
+            } catch (error) {
+                console.error('获取温度数据失败:', error);
+            }
+        }
+
+        // 从服务器获取温度历史记录
+        async function getTemperatureHistory() {
+            try {
+                const response = await fetch('/api/temperature/history');
+                const data = await response.json();
+                
+                // 清空现有数据
+                temperatureChart.data.labels = [];
+                temperatureChart.data.datasets[0].data = [];
+                
+                // 添加历史数据
+                data.forEach(item => {
+                    temperatureChart.data.labels.push(formatDateTime(item.timestamp));
+                    temperatureChart.data.datasets[0].data.push(item.temperature);
+                });
+                
+                // 更新图表
+                temperatureChart.update();
+            } catch (error) {
+                console.error('获取温度历史记录失败:', error);
+            }
+        }
+
+        // 定期更新数据
+        setInterval(() => {
+            getCurrentTemperature();
+            getTemperatureHistory();
+        }, 5000);
+
+        // 初始加载
+        getCurrentTemperature();
+        getTemperatureHistory();
+    </script>
+</body>
+</html> 
